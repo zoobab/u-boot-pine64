@@ -83,7 +83,7 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
-#define CONFIG_NR_DRAM_BANKS		1
+#define CONFIG_NR_DRAM_BANKS		0
 #define PHYS_SDRAM_1_SIZE		(4089 << 20)
 #define CONFIG_SYS_MEMTEST_START	0x100000
 #define CONFIG_SYS_MEMTEST_END		(PHYS_SDRAM_1_SIZE - 0x100000)
