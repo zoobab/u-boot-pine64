@@ -191,8 +191,10 @@ typedef int (init_fnc_t) (void);
 
 __weak void dram_init_banksize(void)
 {
+#if CONFIG_NR_DRAM_BANKS
 	gd->bd->bi_dram[0].start = CONFIG_SYS_SDRAM_BASE;
 	gd->bd->bi_dram[0].size =  gd->ram_size;
+#endif
 }
 
 __weak int arch_cpu_init(void)
