@@ -87,11 +87,13 @@ int armv7_switch_hyp(void)
 {
 	unsigned int reg;
 
+	printf("armv7_switch_hyp(): HYP mode check...\n");
 	/* check whether we are in HYP mode already */
 	if ((read_cpsr() & 0x1f) == 0x1a) {
 		debug("CPU already in HYP mode\n");
 		return 0;
 	}
+	printf("   done\nchecking virt extensions...\n");
 
 	/* check whether the CPU supports the virtualization extensions */
 	reg = read_id_pfr1();
@@ -100,13 +102,17 @@ int armv7_switch_hyp(void)
 		return -1;
 	}
 
+	printf("   done\nswitching to HYP on CPU0 ...\n");
+
 	/* call the HYP switching code on this CPU also */
 	_switch_to_hyp();
 
+	printf("   done\ntesting HYP mode again ...\n");
 	if ((read_cpsr() & 0x1F) != 0x1a) {
 		printf("HYP mode: switch not successful.\n");
 		return -1;
 	}
+	printf("   done\n");
 
 	return 0;
 }
@@ -116,12 +122,14 @@ int armv7_switch_nonsec(void)
 	unsigned int reg;
 	unsigned itlinesnr, i;
 
+	printf("armv7_switch_nonsec(): checking sec ext ...\n");
 	/* check whether the CPU supports the security extensions */
 	reg = read_id_pfr1();
 	if ((reg & 0xF0) == 0) {
 		printf("nonsec: Security extensions not implemented.\n");
 		return -1;
 	}
+	printf("   done\n");
 
 	/* the SCR register will be set directly in the monitor mode handler,
 	 * according to the spec one should not tinker with it in secure state
@@ -133,25 +141,34 @@ int armv7_switch_nonsec(void)
 	if (gic_dist_addr == -1)
 		return -1;
 
+	printf("GIC base address is: 0x%08x\nenabling GIC distributor ...\n",
+		gic_dist_addr);
 	/* enable the GIC distributor */
 	writel(readl(gic_dist_addr + GICD_CTLR) | 0x03,
 	       gic_dist_addr + GICD_CTLR);
+	printf("   done\n");
 
 	/* TYPER[4:0] contains an encoded number of available interrupts */
 	itlinesnr = readl(gic_dist_addr + GICD_TYPER) & 0x1f;
+	printf("number of available interrupts: %d\n", itlinesnr);
 
 	/* set all bits in the GIC group registers to one to allow access
 	 * from non-secure state. The first 32 interrupts are private per
 	 * CPU and will be set later when enabling the GIC for each core
 	 */
+	printf("enabling all interrupts for non-secure state ...\n");
 	for (i = 1; i <= itlinesnr; i++)
 		writel((unsigned)-1, gic_dist_addr + GICD_IGROUPRn + 4 * i);
 
+	printf("   done\nsetting smp core boot address...\n");
 	smp_set_core_boot_addr((unsigned long)_smp_pen, -1);
+	printf("   done\nkicking secondary cores...\n");
 	smp_kick_all_cpus();
+	printf("   done\nswitch to non-secure on CPU0...\n");
 
 	/* call the non-sec switching code on this CPU also */
 	_nonsec_init();
+	printf("   done\n");
 
 	return 0;
 }
