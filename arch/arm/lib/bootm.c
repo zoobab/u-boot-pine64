@@ -258,10 +258,27 @@ bool armv7_boot_nonsec(void)
 }
 #endif
 
-/* Subcommand: GO */
-static void boot_jump_linux(bootm_headers_t *images, int flag)
+#ifdef CONFIG_MACH_SUN50I
+#define ARM_SVC_RUNNSOS		0x8000ff04
+static void sunxi_64bit_switch(u64 entry_point, u64 initial_x0)
 {
-#ifdef CONFIG_ARM64
+	register uint32_t x0 asm ("r0") = ARM_SVC_RUNNSOS;
+	register uint32_t x1 asm ("r1") = entry_point;
+	register uint32_t x2 asm ("r2") = initial_x0;
+
+	/*
+	 * This is "smc #0" in ARM encoding, really. But this is only
+	 * available with the security extension, which the compiler does
+	 * not have enabled for this file. Don't bother here, use the
+	 * machine code instead.
+	 */
+	asm (".word 0xe1600070" :: "l" (x0), "l" (x1), "l" (x2));
+}
+#endif
+
+/* Subcommand: GO */
+static void boot_jump_linux_64(bootm_headers_t *images, int flag)
+{
 	void (*kernel_entry)(void *fdt_addr, void *res0, void *res1,
 			void *res2);
 	int fake = (flag & BOOTM_STATE_OS_FAKE_GO);
@@ -276,10 +293,19 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	announce_and_cleanup(fake);
 
 	if (!fake) {
+#ifdef CONFIG_ARM64
 		do_nonsec_virt_switch();
 		kernel_entry(images->ft_addr, NULL, NULL, NULL);
+#endif
+#ifdef CONFIG_MACH_SUN50I
+		sunxi_64bit_switch((uint64_t)images->ep,
+				   (uint64_t)(ulong)images->ft_addr);
+#endif
 	}
-#else
+}
+
+static void boot_jump_linux_32(bootm_headers_t *images, int flag)
+{
 	unsigned long machid = gd->bd->bi_arch_number;
 	char *s;
 	void (*kernel_entry)(int zero, int arch, uint params);
@@ -317,8 +343,31 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 #endif
 			kernel_entry(0, machid, r2);
 	}
+}
+
+static void boot_jump_linux(bootm_headers_t *image, int flag)
+{
+#if defined(CONFIG_MACH_SUN50I)
+	switch (image->os.arch) {
+	case IH_ARCH_ARM64:
+		printf("loaded 64-bit kernel\n");
+		boot_jump_linux_64(image, flag);
+		break;
+	case IH_ARCH_ARM:
+		printf("loaded 32-bit kernel\n");
+		boot_jump_linux_32(image, flag);
+		break;
+	default:
+		printf("unknown arch %d\n", image->os.arch);
+		break;
+	}
+#elif defined(CONFIG_ARM64)
+	boot_jump_linux_64(image, flag);
+#else
+	boot_jump_linux_32(image, flag);
 #endif
 }
+
 
 /* Main Entry point for arm bootm implementation
  *
