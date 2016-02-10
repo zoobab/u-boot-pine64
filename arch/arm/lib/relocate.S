@@ -118,6 +118,9 @@ relocate_done:
 	mcr	p15, 0, r0, c7, c7, 0	/* invalidate icache */
 	mcr	p15, 0, r0, c7, c10, 4	/* drain write buffer */
 #endif
+	dsb
+	mcr	p15, 0, r0, c7, c5, 0
+	isb	sy
 
 	/* ARMv4- don't know bx lr but the assembler fails to see that */
 
