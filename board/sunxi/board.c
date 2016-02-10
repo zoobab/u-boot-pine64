@@ -21,6 +21,7 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/mmc.h>
 #include <asm/arch/usb_phy.h>
+#include <asm/armv7.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <nand.h>
@@ -79,10 +80,21 @@ int board_init(void)
 	asm volatile("mrc p15, 0, %0, c0, c1, 1" : "=r"(id_pfr1));
 	debug("id_pfr1: 0x%08x\n", id_pfr1);
 	/* Generic Timer Extension available? */
-	if ((id_pfr1 >> 16) & 0xf) {
+	if ((id_pfr1 >> CPUID_ARM_GENTIMER_SHIFT) & 0xf) {
+		uint32_t freq;
+
 		debug("Setting CNTFRQ\n");
-		/* CNTFRQ == 24 MHz */
-		asm volatile("mcr p15, 0, %0, c14, c0, 0" : : "r"(24000000));
+
+		/*
+		 * CNTFRQ is a secure register, so we will crash if we try to
+		 * write this from the non-secure world (read is OK, though).
+		 * In case some bootcode has already set the correct value,
+		 * we avoid the risk of writing to it.
+		 */
+		asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r"(freq));
+		if (freq != CONFIG_TIMER_CLK_FREQ)
+			asm volatile("mcr p15, 0, %0, c14, c0, 0"
+				     : : "r"(CONFIG_TIMER_CLK_FREQ));
 	}
 
 	ret = axp_gpio_init();
