@@ -92,9 +92,12 @@ int board_init(void)
 		 * we avoid the risk of writing to it.
 		 */
 		asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r"(freq));
-		if (freq != CONFIG_TIMER_CLK_FREQ)
+		if (freq != CONFIG_TIMER_CLK_FREQ) {
+			debug("arch timer frequency is %d Hz, should be %d, fixing ...\n",
+			      freq, CONFIG_TIMER_CLK_FREQ);
 			asm volatile("mcr p15, 0, %0, c14, c0, 0"
 				     : : "r"(CONFIG_TIMER_CLK_FREQ));
+		}
 	}
 
 	ret = axp_gpio_init();
