@@ -95,8 +95,12 @@ int board_init(void)
 		if (freq != CONFIG_TIMER_CLK_FREQ) {
 			debug("arch timer frequency is %d Hz, should be %d, fixing ...\n",
 			      freq, CONFIG_TIMER_CLK_FREQ);
+#ifdef CONFIG_NON_SECURE
+			printf("arch timer frequency is wrong, but cannot adjust it\n");
+#else
 			asm volatile("mcr p15, 0, %0, c14, c0, 0"
 				     : : "r"(CONFIG_TIMER_CLK_FREQ));
+#endif
 		}
 	}
 
