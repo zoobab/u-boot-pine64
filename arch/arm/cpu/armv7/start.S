@@ -41,6 +41,10 @@ save_boot_params_ret:
 	 */
 	mrs	r0, cpsr
 	and	r1, r0, #0x1f		@ mask mode bits
+#if defined(CONFIG_MACH_SUN50I) && !defined(CONFIG_SPL_BUILD)
+	teq	r1, #0x13
+	beq	rmr_64bit
+#endif
 	teq	r1, #0x1a		@ test for HYP mode
 	bicne	r0, r0, #0x1f		@ clear all mode bits
 	orrne	r0, r0, #0x13		@ set SVC mode
@@ -268,4 +272,23 @@ ENTRY(cpu_init_crit)
 	 */
 	b	lowlevel_init		@ go setup pll,mux,memory
 ENDPROC(cpu_init_crit)
+#endif
+
+#if defined(CONFIG_MACH_SUN50I) && !defined(CONFIG_SPL_BUILD)
+ENTRY(rmr_64bit)
+	mov	r1, #0x01700000		@ CPUCFG MMIO block base address
+	orr	r1, r1, #0x000000A0	@ offset of RVBAR_0_L
+	mov	r0, #0x40000000		@ entry point of ARM TF
+	str	r0, [r1]
+	dsb
+	isb				@ make sure we write the address
+
+	mrc	p15, 0, r0, c12, c0, 2	@ read RMR
+	orr	r0, r0, #3		@ request warm reset into AArch64
+	mcr	p15, 0, r0, c12, c0, 2  @ write RMR, trigger reset
+
+	isb
+loop:	wfi
+	b	loop
+ENDPROC(rmr_64bit)
 #endif
