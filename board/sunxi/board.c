@@ -229,7 +229,7 @@ static void mmc_pinmux_setup(int sdc)
 			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
 			sunxi_gpio_set_drv(pin, 2);
 		}
-#elif defined(CONFIG_MACH_SUN8I)
+#elif defined(CONFIG_MACH_SUN8I) || defined(CONFIG_MACH_SUN50I)
 		if (pins == SUNXI_GPIO_D) {
 			/* SDC1: PD2-PD7 */
 			for (pin = SUNXI_GPD(2); pin <= SUNXI_GPD(7); pin++) {
