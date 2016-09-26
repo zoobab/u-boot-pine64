@@ -140,6 +140,7 @@ config DRAM_CLK
 	int "sunxi dram clock speed"
 	default 312 if MACH_SUN6I || MACH_SUN8I
 	default 360 if MACH_SUN4I || MACH_SUN5I || MACH_SUN7I
+	default 408 if MACH_SUN50I
 	---help---
 	Set the dram clock speed, valid range 240 - 480, must be a multiple
 	of 24.
@@ -157,6 +158,7 @@ config DRAM_ZQ
 	int "sunxi dram zq value"
 	default 123 if MACH_SUN4I || MACH_SUN5I || MACH_SUN6I || MACH_SUN8I
 	default 127 if MACH_SUN7I
+	default 3881915 if MACH_SUN50I
 	---help---
 	Set the dram zq value.
 
@@ -164,6 +166,7 @@ config DRAM_ODT_EN
 	bool "sunxi dram odt enable"
 	default n if !MACH_SUN8I_A23
 	default y if MACH_SUN8I_A23
+	default y if MACH_SUN50I
 	---help---
 	Select this to enable dram odt (on die termination).
 
